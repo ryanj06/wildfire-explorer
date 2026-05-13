@@ -163,7 +163,10 @@ const LAYERS={
 };
 function gibsUrl(lk,date,z,x,y){
   const L=LAYERS[lk];
-  return `https://gibs.earthdata.nasa.gov/wmts/epsg3857/best/${L.id}/default/${date}/${L.tms}/${z}/${y}/${x}.${L.ext}`;
+  // Land Surface Temp only supports up to zoom level 6
+  const maxZ = lk==="ndvi" ? 6 : z;
+  const useZ = Math.min(z, maxZ);
+  return `https://gibs.earthdata.nasa.gov/wmts/epsg3857/best/${L.id}/default/${date}/${L.tms}/${useZ}/${y}/${x}.${L.ext}`;
 }
 const TILE_SIZE=256;
 function lngLatToWorld(lng,lat,zoom){
