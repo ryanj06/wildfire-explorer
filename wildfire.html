@@ -163,9 +163,15 @@ const LAYERS={
 };
 function gibsUrl(lk,date,z,x,y){
   const L=LAYERS[lk];
-  // Land Surface Temp only supports up to zoom level 6
-  const maxZ = lk==="ndvi" ? 6 : z;
+  // Clamp zoom to safe range for each layer's TileMatrixSet
+  const maxZ = lk==="ndvi" ? 6 : 9;
   const useZ = Math.min(z, maxZ);
+  // Recalculate tile coords at clamped zoom if zoom changed
+  if(useZ !== z){
+    const scale = Math.pow(2, z - useZ);
+    x = Math.floor(x / scale);
+    y = Math.floor(y / scale);
+  }
   return `https://gibs.earthdata.nasa.gov/wmts/epsg3857/best/${L.id}/default/${date}/${L.tms}/${useZ}/${y}/${x}.${L.ext}`;
 }
 const TILE_SIZE=256;
