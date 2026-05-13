@@ -287,7 +287,7 @@ function renderTiles(){
 function renderChoropleth(){
   if(!selectedFire)return;
   const W=container.clientWidth,H=container.clientHeight;
-  chorSvg.attr("width",W).attr("height",H).selectAll("*").remove();
+  chorSvg.attr("width",W).attr("height",H).style("pointer-events","all").selectAll("*").remove();
  
   const{x:cx,y:cy}=lngLatToWorld(mapCenter.lng,mapCenter.lat,mapZoom);
   const project=([lng,lat])=>{
@@ -350,13 +350,33 @@ function renderChoropleth(){
       const cellW=Math.abs(px2-px1);
       const cellH=Math.abs(py2-py1);
  
+      const cellNdviVal=cellNdvi;
       chorSvg.append("rect")
         .attr("x",px1).attr("y",py1)
         .attr("width",Math.max(1,cellW))
         .attr("height",Math.max(1,cellH))
         .attr("fill",ndviColor(cellNdvi))
         .attr("opacity",0.82)
-        .attr("stroke","none");
+        .attr("stroke","none")
+        .attr("pointer-events","all")
+        .style("cursor","crosshair")
+        .on("mouseover",function(event){
+          d3.select(this).attr("opacity",1).attr("stroke","#fff").attr("stroke-width",1);
+          const label=ndviLabel(cellNdviVal);
+          document.getElementById("tt-title").textContent="NDVI Cell";
+          document.getElementById("tt-r1").innerHTML=`Value: <span>${cellNdviVal.toFixed(3)}</span>`;
+          document.getElementById("tt-r2").innerHTML=`Status: <span>${label}</span>`;
+          document.getElementById("tt-r3").innerHTML=`Phase: <span>${getPhaseLabel(selectedFire,getSelectedDate())}</span>`;
+          document.getElementById("tt-ndvi-fill").style.width=(cellNdviVal*100)+"%";
+          document.getElementById("tt-ndvi-lbl").textContent="Vegetation health (0 = bare, 1 = dense)";
+          tooltip.style.opacity="1";
+          moveTooltip(event);
+        })
+        .on("mousemove",function(event){moveTooltip(event);})
+        .on("mouseout",function(){
+          d3.select(this).attr("opacity",0.82).attr("stroke","none");
+          hideTooltip();
+        });
     }
   }
  
