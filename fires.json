@@ -1,0 +1,140 @@
+[
+  {
+    "id": "dixie",
+    "name": "Dixie Fire",
+    "year": 2021,
+    "ignition": "2021-07-13",
+    "peak": "2021-09-01",
+    "contained": "2021-10-25",
+    "acres": 963309,
+    "structures": 1329,
+    "county": "Plumas / Butte / Shasta / Lassen / Tehama",
+    "cause": "Power lines (PG&E)",
+    "center": [-121.15, 40.05],
+    "zoom": 8,
+    "dates": [
+      "2021-05-01","2021-07-01","2021-07-15","2021-08-01",
+      "2021-09-01","2021-10-01","2021-11-01",
+      "2022-05-01","2022-09-01",
+      "2023-05-01","2024-05-01"
+    ],
+    "ndvi": [0.72, 0.68, 0.41, 0.22, 0.18, 0.21, 0.24, 0.33, 0.38, 0.47, 0.55],
+    "phaseNotes": {
+      "pre":       "Dense mixed conifer forest — NDVI above 0.65",
+      "ignition":  "Fire ignites July 13 near Cresta Dam, spreads rapidly northeast",
+      "active":    "Largest single fire in CA history — 963K acres burned",
+      "contained": "Full containment Oct 25 after 104 days",
+      "recovery":  "Slow recovery — high-severity burn limits regrowth"
+    }
+  },
+  {
+    "id": "camp",
+    "name": "Camp Fire",
+    "year": 2018,
+    "ignition": "2018-11-08",
+    "peak": "2018-11-15",
+    "contained": "2018-11-25",
+    "acres": 153336,
+    "structures": 18804,
+    "county": "Butte",
+    "cause": "Power lines (PG&E)",
+    "center": [-121.57, 39.75],
+    "zoom": 10,
+    "dates": [
+      "2018-09-01","2018-10-01","2018-11-08","2018-11-15",
+      "2018-12-01","2019-03-01","2019-09-01",
+      "2020-09-01","2021-09-01","2022-09-01"
+    ],
+    "ndvi": [0.58, 0.54, 0.52, 0.12, 0.15, 0.19, 0.28, 0.35, 0.41, 0.47],
+    "phaseNotes": {
+      "pre":       "Foothill woodland — moderate NDVI around 0.55",
+      "ignition":  "Fire ignites Nov 8 in Pulga, driven by Jarbo Gap winds at 50mph",
+      "active":    "Destroys Paradise in 90 minutes — deadliest CA fire (85 killed)",
+      "contained": "Contained Nov 25 after 17 days",
+      "recovery":  "Significant shrub regrowth by year 2; forest recovery slower"
+    }
+  },
+  {
+    "id": "caldor",
+    "name": "Caldor Fire",
+    "year": 2021,
+    "ignition": "2021-08-14",
+    "peak": "2021-08-30",
+    "contained": "2021-10-21",
+    "acres": 221835,
+    "structures": 1003,
+    "county": "El Dorado / Amador",
+    "cause": "Human activity",
+    "center": [-120.05, 38.65],
+    "zoom": 9,
+    "dates": [
+      "2021-06-01","2021-08-01","2021-08-15","2021-09-01",
+      "2021-10-01","2021-11-01",
+      "2022-06-01","2022-09-01",
+      "2023-06-01","2024-06-01"
+    ],
+    "ndvi": [0.75, 0.73, 0.35, 0.20, 0.22, 0.25, 0.34, 0.38, 0.46, 0.54],
+    "phaseNotes": {
+      "pre":       "Dense Sierra Nevada mixed conifer — NDVI above 0.70",
+      "ignition":  "Fire ignites Aug 14 near Grizzly Flats, El Dorado County",
+      "active":    "Threatened South Lake Tahoe basin — 50K evacuated",
+      "contained": "Contained Oct 21 after 68 days",
+      "recovery":  "Mixed severity burn allows patchy early recovery"
+    }
+  },
+  {
+    "id": "creek",
+    "name": "Creek Fire",
+    "year": 2020,
+    "ignition": "2020-09-04",
+    "peak": "2020-09-14",
+    "contained": "2021-02-25",
+    "acres": 379895,
+    "structures": 856,
+    "county": "Fresno / Madera",
+    "cause": "Under investigation",
+    "center": [-119.25, 37.25],
+    "zoom": 9,
+    "dates": [
+      "2020-07-01","2020-09-01","2020-09-05","2020-09-15",
+      "2020-10-01","2020-12-01",
+      "2021-07-01","2022-07-01",
+      "2023-07-01","2024-07-01"
+    ],
+    "ndvi": [0.70, 0.68, 0.38, 0.16, 0.19, 0.22, 0.30, 0.40, 0.50, 0.58],
+    "phaseNotes": {
+      "pre":       "Sierra National Forest — healthy mixed conifer NDVI ~0.70",
+      "ignition":  "Ignites Labor Day weekend Sept 4 near Shaver Lake",
+      "active":    "Rapid growth — trapped 200+ people needing helicopter rescue",
+      "contained": "Not fully contained until Feb 25, 2021",
+      "recovery":  "Strong shrub rebound in lower elevations by year 2"
+    }
+  },
+  {
+    "id": "thomas",
+    "name": "Thomas Fire",
+    "year": 2017,
+    "ignition": "2017-12-04",
+    "peak": "2017-12-16",
+    "contained": "2018-01-12",
+    "acres": 281893,
+    "structures": 1063,
+    "county": "Ventura / Santa Barbara",
+    "cause": "Power lines (SCE)",
+    "center": [-119.20, 34.45],
+    "zoom": 9,
+    "dates": [
+      "2017-10-01","2017-12-01","2017-12-05","2017-12-16",
+      "2018-01-01","2018-06-01","2018-12-01",
+      "2019-12-01","2021-12-01","2023-12-01"
+    ],
+    "ndvi": [0.45, 0.42, 0.20, 0.08, 0.10, 0.22, 0.30, 0.36, 0.42, 0.44],
+    "phaseNotes": {
+      "pre":       "Southern CA chaparral and coastal scrub — NDVI ~0.42",
+      "ignition":  "Ignites Dec 4 near Thomas Aquinas College during Santa Ana winds",
+      "active":    "Largest CA fire at the time — fanned by 80mph winds",
+      "contained": "Contained Jan 12, 2018 after 40 days",
+      "recovery":  "Chaparral ecosystems adapted to fire — strong recovery by year 3"
+    }
+  }
+]
