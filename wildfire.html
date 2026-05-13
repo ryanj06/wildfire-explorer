@@ -93,6 +93,12 @@
     .loading-text{font-family:'Bebas Neue',sans-serif;font-size:14px;letter-spacing:4px;color:var(--text-dim)}
     @keyframes pulse-ring{0%{r:10;opacity:.8}100%{r:45;opacity:0}}
     .pulse-ring{animation:pulse-ring 2s ease-out infinite}
+    #play-btn{background:var(--surface2);border:1px solid var(--border);color:var(--accent2);font-size:14px;width:28px;height:28px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .12s;flex-shrink:0}
+    #play-btn:hover{border-color:var(--accent2);background:rgba(245,166,35,.1)}
+    #play-btn.playing{color:#fff;background:var(--accent);border-color:var(--accent)}
+    #split-divider{position:absolute;top:0;bottom:0;width:3px;background:var(--accent2);cursor:col-resize;z-index:30;left:50%}
+    #split-divider::before{content:'◀ ▶';position:absolute;top:50%;transform:translateY(-50%);left:50%;transform:translate(-50%,-50%);background:var(--accent2);color:#000;font-size:8px;padding:3px 5px;white-space:nowrap;letter-spacing:1px}
+    .split-active #map-tiles{clip-path:inset(0 50% 0 0)}
     ::-webkit-scrollbar{width:4px}::-webkit-scrollbar-track{background:var(--surface)}::-webkit-scrollbar-thumb{background:var(--border2)}
   </style>
 </head>
@@ -118,6 +124,10 @@
       <div class="sbl">Observation Timeline</div>
       <div class="tl-date-row"><div class="tl-date" id="tl-date">—</div><div class="tl-idx" id="tl-idx"></div></div>
       <div class="tl-phase" id="tl-phase">Select a fire to begin</div>
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
+        <button id="play-btn" title="Play / Pause">▶</button>
+        <span id="play-status" style="font-size:9px;color:var(--text-faint);letter-spacing:1px">AUTO-PLAY</span>
+      </div>
       <div class="slider-wrap">
         <svg id="tl-track-bg" height="14"></svg>
         <input type="range" id="timeline-slider" min="0" max="10" step="1" value="0"/>
@@ -132,9 +142,12 @@
     </div>
   </div>
   <div id="map-container">
+    <div id="map-tiles-before" style="position:absolute;inset:0;overflow:hidden;display:none"></div>
     <div id="map-tiles"></div>
+    <div id="split-divider" style="display:none"></div>
     <svg id="choropleth-svg"></svg>
     <svg id="map-svg"></svg>
+    <svg id="ca-minimap" style="position:absolute;bottom:70px;right:14px;z-index:20;background:rgba(19,18,16,.92);border:1px solid var(--border)" width="90" height="110"></svg>
     <div class="map-badge" id="map-date-badge">
       <div class="mdb-date" id="mdb-date">—</div>
       <div class="mdb-phase" id="mdb-phase">Select a fire event</div>
@@ -152,8 +165,9 @@
       <div class="ndvi-labels"><span>Burned</span><span>Sparse</span><span>Dense</span></div>
     </div>
     <div class="map-badge" id="map-controls">
-      <button class="map-ctrl-btn" id="zoom-in">+</button>
-      <button class="map-ctrl-btn" id="zoom-out">−</button>
+      <button class="map-ctrl-btn" id="zoom-in" title="Zoom in">+</button>
+      <button class="map-ctrl-btn" id="zoom-out" title="Zoom out">−</button>
+      <button class="map-ctrl-btn" id="split-btn" title="Before/After split" style="font-size:10px;letter-spacing:0">B/A</button>
     </div>
     <div id="tooltip">
       <div class="tt-title" id="tt-title"></div>
@@ -557,24 +571,7 @@ function renderSliderTrack(fire){
   }
 }
  
-function updateAll(){
-  const date=getSelectedDate();
-  const phase=selectedFire?getPhaseLabel(selectedFire,date):"Select a fire to begin";
-  const ndvi=getCurrentNDVI();
-  const color=selectedFire?getPhaseColor(getPhase(selectedFire,date)):"#7c7a72";
-  document.getElementById("tl-date").textContent=date||"—";
-  document.getElementById("tl-date").style.color=color;
-  document.getElementById("tl-idx").textContent=selectedFire?`${selectedDateIndex+1} / ${selectedFire.dates.length}`:"";
-  document.getElementById("tl-phase").textContent=phase;
-  const pkey=getPhase(selectedFire,date);
-  const note=selectedFire?.phaseNotes?.[pkey]||"—";
-  const pnEl=document.getElementById("phase-note");
-  pnEl.textContent=note;pnEl.style.borderColor=color;
-  document.getElementById("mdb-date").textContent=date||"—";
-  document.getElementById("mdb-phase").textContent=phase;
-  const ndviEl=document.getElementById("mdb-ndvi");
-  ndviEl.innerHTML=ndvi!=null?`NDVI <span>${ndvi.toFixed(2)}</span> · ${ndviLabel(ndvi)}`:"";
-}
+// updateAll is defined below with minimap + split support
 function ndviLabel(v){
   if(v>=.6)return"Dense vegetation";
   if(v>=.4)return"Moderate vegetation";
@@ -649,6 +646,191 @@ container.addEventListener("wheel",e=>{
 },{passive:false});
 window.addEventListener("resize",()=>{if(selectedFire){renderTiles();renderSliderTrack(selectedFire);}});
  
+// ── PLAY BUTTON ────────────────────────────────────
+let playInterval=null;
+const playBtn=document.getElementById("play-btn");
+const playStatus=document.getElementById("play-status");
+ 
+function startPlay(){
+  if(!selectedFire)return;
+  playBtn.textContent="⏸";playBtn.classList.add("playing");
+  playStatus.textContent="PLAYING";
+  playInterval=setInterval(()=>{
+    const next=selectedDateIndex+1;
+    if(next>=selectedFire.dates.length){
+      stopPlay();
+      return;
+    }
+    selectDateIndex(next);
+  },1500);
+}
+function stopPlay(){
+  clearInterval(playInterval);playInterval=null;
+  playBtn.textContent="▶";playBtn.classList.remove("playing");
+  playStatus.textContent="AUTO-PLAY";
+}
+playBtn.addEventListener("click",()=>{
+  if(playInterval)stopPlay();else startPlay();
+});
+// Stop play when user manually drags slider
+document.getElementById("timeline-slider").addEventListener("mousedown",()=>stopPlay());
+ 
+// ── BEFORE/AFTER SPLIT ──────────────────────────────
+let splitActive=false;
+let splitX=null;
+const splitBtn=document.getElementById("split-btn");
+const splitDivider=document.getElementById("split-divider");
+const tilesBefore=document.getElementById("map-tiles-before");
+ 
+function renderBeforeTiles(){
+  if(!selectedFire)return;
+  const preDate=selectedFire.dates[0]; // always pre-fire date
+  const W=container.clientWidth,H=container.clientHeight;
+  d3.select(tilesBefore).selectAll("img").remove();
+  const{x:cx,y:cy}=lngLatToWorld(mapCenter.lng,mapCenter.lat,mapZoom);
+  const offX=cx%TILE_SIZE,offY=cy%TILE_SIZE;
+  const tilesX=Math.ceil(W/TILE_SIZE)+2,tilesY=Math.ceil(H/TILE_SIZE)+2;
+  const startTX=Math.floor(cx/TILE_SIZE)-Math.floor(tilesX/2);
+  const startTY=Math.floor(cy/TILE_SIZE)-Math.floor(tilesY/2);
+  const maxTile=Math.pow(2,mapZoom)-1;
+  for(let dy2=0;dy2<tilesY;dy2++){
+    for(let dx2=0;dx2<tilesX;dx2++){
+      const tx=startTX+dx2,ty=startTY+dy2;
+      if(tx<0||ty<0||tx>maxTile||ty>maxTile)continue;
+      const pixX=(dx2-Math.floor(tilesX/2))*TILE_SIZE+W/2-offX;
+      const pixY=(dy2-Math.floor(tilesY/2))*TILE_SIZE+H/2-offY;
+      d3.select(tilesBefore).append("img")
+        .attr("src",gibsUrl(preDate,mapZoom,tx,ty))
+        .style("position","absolute").style("left",pixX+"px").style("top",pixY+"px")
+        .style("width",TILE_SIZE+"px").style("height",TILE_SIZE+"px").style("image-rendering","pixelated");
+    }
+  }
+}
+ 
+function setSplitPos(x){
+  splitX=x;
+  splitDivider.style.left=x+"px";
+  // Current date tiles clipped to right of split
+  document.getElementById("map-tiles").style.clipPath=`inset(0 0 0 ${x}px)`;
+  // Before tiles clipped to left of split
+  tilesBefore.style.clipPath=`inset(0 ${container.clientWidth-x}px 0 0)`;
+  // Label overlays
+  const existingLabels=document.querySelectorAll(".split-label");
+  existingLabels.forEach(l=>l.remove());
+  const lbl1=document.createElement("div");
+  lbl1.className="split-label";
+  lbl1.style.cssText=`position:absolute;top:12px;left:${Math.min(x-70,x-10)}px;transform:translateX(-100%);font-family:'DM Mono',monospace;font-size:9px;letter-spacing:1.5px;color:#5aab45;text-transform:uppercase;pointer-events:none;z-index:25;background:rgba(12,11,9,.7);padding:2px 6px`;
+  lbl1.textContent="PRE-FIRE";
+  const lbl2=document.createElement("div");
+  lbl2.className="split-label";
+  lbl2.style.cssText=`position:absolute;top:12px;left:${x+8}px;font-family:'DM Mono',monospace;font-size:9px;letter-spacing:1.5px;color:#e8541e;text-transform:uppercase;pointer-events:none;z-index:25;background:rgba(12,11,9,.7);padding:2px 6px`;
+  lbl2.textContent=getSelectedDate()||"CURRENT";
+  container.appendChild(lbl1);
+  container.appendChild(lbl2);
+}
+ 
+splitBtn.addEventListener("click",()=>{
+  splitActive=!splitActive;
+  if(splitActive){
+    splitBtn.style.borderColor="var(--accent2)";
+    splitBtn.style.color="var(--accent2)";
+    splitDivider.style.display="block";
+    tilesBefore.style.display="block";
+    setSplitPos(container.clientWidth/2);
+    renderBeforeTiles();
+  } else {
+    splitBtn.style.borderColor="";splitBtn.style.color="";
+    splitDivider.style.display="none";
+    tilesBefore.style.display="none";
+    document.getElementById("map-tiles").style.clipPath="none";
+    document.querySelectorAll(".split-label").forEach(l=>l.remove());
+  }
+});
+ 
+// Drag the split divider
+let draggingSplit=false;
+splitDivider.addEventListener("mousedown",e=>{draggingSplit=true;e.stopPropagation();e.preventDefault();});
+document.addEventListener("mousemove",e=>{
+  if(!draggingSplit)return;
+  const r=container.getBoundingClientRect();
+  const x=Math.max(50,Math.min(container.clientWidth-50,e.clientX-r.left));
+  setSplitPos(x);
+});
+document.addEventListener("mouseup",()=>{draggingSplit=false;});
+ 
+// ── CA MINIMAP ──────────────────────────────────────
+const CA_OUTLINE=[
+  [-124.4,42.0],[-120.0,42.0],[-120.0,39.0],[-114.6,35.1],[-114.6,34.9],
+  [-117.1,32.5],[-117.5,32.5],[-118.5,34.0],[-120.5,34.5],[-122.4,37.8],
+  [-123.0,38.0],[-124.2,40.5],[-124.4,42.0]
+];
+ 
+function renderMinimap(){
+  const svg=d3.select("#ca-minimap");
+  svg.selectAll("*").remove();
+  const W=90,H=110,pad=8;
+  const lngs=CA_OUTLINE.map(d=>d[0]),lats=CA_OUTLINE.map(d=>d[1]);
+  const xScale=d3.scaleLinear().domain([Math.min(...lngs),Math.max(...lngs)]).range([pad,W-pad]);
+  const yScale=d3.scaleLinear().domain([Math.min(...lats),Math.max(...lats)]).range([H-pad,pad]);
+  const line=d3.line().x(d=>xScale(d[0])).y(d=>yScale(d[1]));
+  svg.append("path").datum(CA_OUTLINE).attr("d",line)
+    .attr("fill","#1a1917").attr("stroke","#3a3835").attr("stroke-width",1);
+  svg.append("text").attr("x",W/2).attr("y",H-2).attr("text-anchor","middle")
+    .attr("fill","#3e3d38").attr("font-family","'DM Mono',monospace").attr("font-size","7px")
+    .attr("letter-spacing","1px").text("CALIFORNIA");
+  if(selectedFire){
+    const fx=xScale(selectedFire.center[0]);
+    const fy=yScale(selectedFire.center[1]);
+    const phase=getPhase(selectedFire,getSelectedDate());
+    const col=getPhaseColor(phase);
+    svg.append("circle").attr("cx",fx).attr("cy",fy).attr("r",5)
+      .attr("fill",col).attr("fill-opacity",.3).attr("stroke",col).attr("stroke-width",1.5);
+    svg.append("circle").attr("cx",fx).attr("cy",fy).attr("r",2)
+      .attr("fill",col);
+    svg.append("text").attr("x",fx+7).attr("y",fy+4)
+      .attr("fill",col).attr("font-family","'DM Mono',monospace").attr("font-size","6px")
+      .text(selectedFire.name.split(" ")[0].toUpperCase());
+  }
+}
+ 
+// ── NDVI CELL TRANSITIONS ───────────────────────────
+// Store cell data for transitions
+let prevCellData=[];
+ 
+function renderChoroplethWithTransition(){
+  renderChoropleth();
+}
+ 
+// ── HOOK MINIMAP INTO selectFire/selectDateIndex ────
+const _origSelectFire=selectFire;
+// We'll call renderMinimap after selectFire already runs via patching updateAll
+const _origUpdateAll=updateAll;
+// Patch updateAll to also update minimap and split labels
+function updateAll(){
+  const date=getSelectedDate();
+  const phase=selectedFire?getPhaseLabel(selectedFire,date):"Select a fire to begin";
+  const ndvi=getCurrentNDVI();
+  const color=selectedFire?getPhaseColor(getPhase(selectedFire,date)):"#7c7a72";
+  document.getElementById("tl-date").textContent=date||"—";
+  document.getElementById("tl-date").style.color=color;
+  document.getElementById("tl-idx").textContent=selectedFire?`${selectedDateIndex+1} / ${selectedFire.dates.length}`:"";
+  document.getElementById("tl-phase").textContent=phase;
+  const pkey=getPhase(selectedFire,date);
+  const note=selectedFire?.phaseNotes?.[pkey]||"—";
+  const pnEl=document.getElementById("phase-note");
+  pnEl.textContent=note;pnEl.style.borderColor=color;
+  document.getElementById("mdb-date").textContent=date||"—";
+  document.getElementById("mdb-phase").textContent=phase;
+  const ndviEl=document.getElementById("mdb-ndvi");
+  ndviEl.innerHTML=ndvi!=null?`NDVI <span>${ndvi.toFixed(2)}</span> · ${ndviLabel(ndvi)}`:"";
+  renderMinimap();
+  if(splitActive){
+    document.querySelectorAll(".split-label").forEach(l=>l.remove());
+    if(splitX)setSplitPos(splitX);
+  }
+}
+ 
+// ── INIT ────────────────────────────────────────────
 d3.json("fires.json").then(data=>{
   fires=data;buildFireList(fires);selectFire(fires[0]);
 }).catch(err=>{
