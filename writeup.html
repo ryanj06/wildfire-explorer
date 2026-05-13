@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <title>Project 3 — California Wildfire Scar Explorer</title>
+    <link rel="stylesheet" href="stylee.css" />
+    <style>
+        :root { --fire: #e8541e; --amber: #f5a623; --green: #5aab45; }
+        h1 small { background: var(--fire); }
+        h2 { color: var(--fire); border-bottom-color: #f0c0a0; }
+        h3 { color: var(--amber); }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>
+            <small>Project 3</small>
+            California Wildfire Scar Explorer
+        </h1>
+        <p>
+            <strong>Ryan Jose</strong> — r2jose@ucsd.edu<br />
+            <strong>Holden Flett</strong> — hflett@ucsd.edu<br />
+            <strong>Krish Desai</strong> — kdesai@ucsd.edu
+        </p>
+    </header>
+
+    <main>
+
+        <section id="question">
+            <h2 style="text-align: center;">
+                How do California's largest wildfires scar the land, and how does vegetation recover over time?
+            </h2>
+        </section>
+
+        <section id="rationale">
+            <h2>Design Decisions</h2>
+            <p>Starting out, several different questions with the MODIS dataset were explored. Early ideas focused on atmospheric and environmental patterns, including whether cloud systems move in consistent directions over time, whether coastal regions exhibit different cloud behavior than inland areas, and whether storms dissipate faster over land than ocean. Some initial static visualizations were made around these, but the wildfire angle ended up being the most interesting because the before/after contrast in the satellite imagery is immediately dramatic.</p>
+            <p>The final visualization focuses on showing how large California wildfires transform landscapes over time and how vegetation gradually recovers afterward. A forest that looked completely healthy in May can be unrecognizable by September, and seeing it slowly recover over the next few years is what made this dataset worth exploring using interactive visualization.</p>
+            <p>The main goal was visual clarity, for someone to open the visualization and immediately understand what they're looking at without any explanation needed. That's why the real NASA satellite imagery was used as the base layer instead of something more abstract. The imagery naturally communicates environmental change. When you see green forest in May 2021 and then dark burn scars in September 2021 on the same map, no legend is needed to understand what happened.</p>
+
+            <h3>Interaction Techniques</h3>
+            <p>The time slider was the core interaction that was focused on from the start. The goal was for it to feel like passing through time rather than clicking through static images, so the track was color-coded green for pre-fire, red for active, and amber for recovery so you can see where you are in the fire's lifecycle at a glance. The play button turns it into an animation so the fire spreads and recovery plays out automatically.</p>
+            <p>The before/after split was added because the time slider alone did not make the contrast dramatic enough. With the split, pre-fire and post-fire views can be held side by side and the divider dragged to compare them directly.</p>
+            <p>The NDVI overlay came from wanting a second encoding that shows vegetation health more explicitly than the satellite imagery does. On cloudy days the true color imagery is not that useful, so having a second view that encodes the same data differently gives the viewer another way to explore it.</p>
+            <p>Clicking the fire center dot opens a popup with the full story of each fire including cause, spread rate, and communities affected, because the raw satellite imagery alone was missing the human context.</p>
+
+            <h3>Alternatives Considered</h3>
+            <p>A California county choropleth colored by acres burned was considered but felt too static and aggregate. A multi-line NDVI recovery chart showing all four fires at once was also tried but did not integrate well with the map. Ultimately a focused map-first design with supporting interactions felt more coherent than trying to fit multiple chart types onto one page.</p>
+        </section>
+
+        <section id="process">
+            <h2>Development Process</h2>
+            <p>The project was built over a couple weeks through a lot of iteration, starting with data exploration and then gradually moving into interaction design and refinement. Early on, most of the time was spent figuring out what parts of the MODIS dataset were actually interesting to visualize. We looked at several different ideas related to clouds and weather patterns before eventually focusing on wildfires because the visual difference in the satellite imagery was much more compelling.</p>
+            <p>Once we settled on the wildfire direction, we started collecting and organizing imagery across different dates for each fire. One of the more difficult parts was keeping the satellite imagery and NDVI layers synchronized across the timeline. Since the visualization depends heavily on time-based interaction, even small inconsistencies between layers became noticeable immediately. A lot of debugging time went into getting smooth transitions and making sure the correct imagery appeared for each timestamp.</p>
+            <p>Most of the implementation work was done in D3.js, especially for the timeline interactions and map overlays. The timeline animation, draggable before/after comparison slider, popup interactions, and overlay toggles all took multiple iterations before they felt smooth and intuitive. We also spent a lot of time simplifying the interface because some earlier versions felt too crowded once additional charts and controls were added.</p>
+
+            <h3>Time Breakdown</h3>
+            <p>Roughly 30 people-hours were spent developing the project overall. The most time-consuming parts were preprocessing the satellite imagery, implementing the synchronized timeline interactions, and refining the comparison view so that it felt responsive and easy to use.</p>
+            <p>Work was split fairly evenly across the team. Different members focused on data preprocessing, D3 implementation, interaction logic, styling, debugging, and writing/documentation. Because the project changed direction a few times during development, there was also a lot of collaborative testing and redesign throughout the process.</p>
+            <p>The final visualization ended up much simpler than some of the earlier prototypes. Initially we experimented with additional charts like county-level burn summaries and multi-line NDVI graphs, but they made the interface feel cluttered and distracted from the satellite imagery itself. Over time, the project shifted toward a more focused map-first design that prioritized exploration and visual comparison over displaying as much information as possible.</p>
+        </section>
+
+    </main>
+</body>
+</html>
