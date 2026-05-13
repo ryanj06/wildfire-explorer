@@ -128,7 +128,7 @@
     <div class="sbs"><div class="sbl">Map View</div>
       <div class="layer-toggle">
         <button class="layer-btn active" data-layer="truecolor">Satellite</button>
-        <button class="layer-btn" data-layer="ndvi">Recovery Chart</button>
+        <button class="layer-btn" data-layer="ndvi">NDVI Overlay</button>
       </div>
     </div>
     <div class="sbs" id="timeline-section">
@@ -199,18 +199,18 @@
   </div>
 </div>
 <script>
- 
+
 const TILE_SIZE=256;
 const GIBS_LAYER="MODIS_Terra_CorrectedReflectance_TrueColor";
 const GIBS_TMS="GoogleMapsCompatible_Level9";
- 
+
 function gibsUrl(date,z,x,y){
   const useZ=Math.min(z,9);
   let ux=x,uy=y;
   if(useZ!==z){const s=Math.pow(2,z-useZ);ux=Math.floor(x/s);uy=Math.floor(y/s);}
   return `https://gibs.earthdata.nasa.gov/wmts/epsg3857/best/${GIBS_LAYER}/default/${date}/${GIBS_TMS}/${useZ}/${uy}/${ux}.jpg`;
 }
- 
+
 function lngLatToWorld(lng,lat,zoom){
   const scale=TILE_SIZE*Math.pow(2,zoom);
   const x=(lng+180)/360*scale;
@@ -218,7 +218,7 @@ function lngLatToWorld(lng,lat,zoom){
   const y=(0.5-Math.log((1+sinLat)/(1-sinLat))/(4*Math.PI))*scale;
   return{x,y};
 }
- 
+
 let fires=[],selectedFire=null,selectedDateIndex=0,selectedLayer="truecolor";
 let mapZoom=7,mapCenter={lng:-120,lat:38};
 const container=document.getElementById("map-container");
@@ -227,11 +227,11 @@ const mapSvg=d3.select("#map-svg");
 const chorSvg=d3.select("#choropleth-svg");
 const tooltip=document.getElementById("tooltip");
 let loadingTimer=null;
- 
+
 const ndviColor=d3.scaleSequential()
   .domain([0,1])
   .interpolator(d3.interpolateRgbBasis(["#7b2d00","#e8541e","#f5a623","#ffe066","#b8e04a","#5aab45"]));
- 
+
 // Each fire has a simplified polygon in [lng,lat] pairs
 const FIRE_POLYGONS={
   dixie:[[-121.8,40.5],[-120.4,40.5],[-120.4,39.6],[-121.8,39.6]],
@@ -240,7 +240,7 @@ const FIRE_POLYGONS={
   creek:[[-119.6,37.6],[-118.8,37.6],[-118.8,36.9],[-119.6,36.9]],
   thomas:[[-119.7,34.7],[-118.6,34.7],[-118.6,34.2],[-119.7,34.2]]
 };
- 
+
 function getPhase(fire,date){
   if(!fire||!date)return"none";
   if(date<fire.ignition)return"pre";
@@ -263,7 +263,7 @@ function getPhaseColor(p){
 }
 function getSelectedDate(){return selectedFire?selectedFire.dates[selectedDateIndex]:null;}
 function getCurrentNDVI(){return selectedFire?selectedFire.ndvi[selectedDateIndex]:null;}
- 
+
 function renderTiles(){
   const W=container.clientWidth,H=container.clientHeight;
   const date=getSelectedDate();
@@ -302,180 +302,23 @@ function renderTiles(){
     // NDVI choropleth mode — hide tiles, draw D3 choropleth
     document.getElementById("map-tiles").style.opacity="0";
     hideLoading();
-    renderRecoveryChart();
+    renderChoropleth();
     document.getElementById("map-legend").style.display="none";
-    document.getElementById("ndvi-legend").style.display="none";
+    document.getElementById("ndvi-legend").style.display="block";
   }
   updateSVGOverlay();
 }
- 
+
 // Seeded random for consistent cell values per fire+date
 function seededRand(seed){
   let s=seed;
   return function(){s=(s*1664525+1013904223)&0xffffffff;return(s>>>0)/0xffffffff;};
 }
- 
-function renderRecoveryChart(){
-  if(!fires||fires.length===0)return;
-  const W=container.clientWidth,H=container.clientHeight;
-  chorSvg.attr("width",W).attr("height",H).style("pointer-events","all").selectAll("*").remove();
- 
-  const m={top:60,right:60,bottom:70,left:70};
-  const w=W-m.left-m.right;
-  const h=H-m.top-m.bottom;
-  const g=chorSvg.append("g").attr("transform",`translate(${m.left},${m.top})`);
- 
-  chorSvg.append("rect").attr("width",W).attr("height",H).attr("fill","#0c0b09");
- 
-  // Collect all dates across all fires for x domain
-  const allDates=[];
-  fires.forEach(fire=>fire.dates.forEach(d=>allDates.push(new Date(d))));
-  const xDomain=[d3.min(allDates),d3.max(allDates)];
- 
-  const xScale=d3.scaleTime().domain(xDomain).range([0,w]);
-  const yScale=d3.scaleLinear().domain([0,1]).range([h,0]);
- 
-  const fireColors={
-    dixie:"#e8541e",
-    caldor:"#f5a623",
-    creek:"#5aab45",
-    thomas:"#7ec850"
-  };
- 
-  // Grid lines
-  [0,0.2,0.4,0.6,0.8,1].forEach(v=>{
-    g.append("line").attr("x1",0).attr("x2",w).attr("y1",yScale(v)).attr("y2",yScale(v))
-      .attr("stroke","#2c2a26").attr("stroke-width",0.5);
-    g.append("text").attr("x",-8).attr("y",yScale(v)+4).attr("text-anchor","end")
-      .attr("fill","#3e3d38").attr("font-family","'DM Mono',monospace").attr("font-size","10px")
-      .text(v.toFixed(1));
-  });
- 
-  // NDVI threshold label
-  g.append("line").attr("x1",0).attr("x2",w).attr("y1",yScale(0.4)).attr("y2",yScale(0.4))
-    .attr("stroke","#3e3d38").attr("stroke-width",1).attr("stroke-dasharray","4 3");
-  g.append("text").attr("x",w+4).attr("y",yScale(0.4)+4)
-    .attr("fill","#3e3d38").attr("font-family","'DM Mono',monospace").attr("font-size","9px")
-    .text("recovery threshold");
- 
-  // Phase band: shade ignition period for selected fire
-  if(selectedFire){
-    const ignX=xScale(new Date(selectedFire.ignition));
-    const cntX=xScale(new Date(selectedFire.contained));
-    g.append("rect").attr("x",ignX).attr("y",0).attr("width",cntX-ignX).attr("height",h)
-      .attr("fill","#e8541e").attr("opacity",0.04);
-  }
- 
-  // Draw lines for each fire
-  fires.forEach(fire=>{
-    const color=fireColors[fire.id]||"#7c7a72";
-    const dates=fire.dates.map(d=>new Date(d));
-    const ndvi=fire.ndvi;
- 
-    const lineGen=d3.line()
-      .x((d,i)=>xScale(dates[i]))
-      .y(d=>yScale(d))
-      .curve(d3.curveCatmullRom);
- 
-    // Area fill
-    const areaGen=d3.area()
-      .x((d,i)=>xScale(dates[i]))
-      .y0(h).y1(d=>yScale(d))
-      .curve(d3.curveCatmullRom);
- 
-    const isSelected=selectedFire&&fire.id===selectedFire.id;
- 
-    g.append("path").datum(ndvi).attr("d",areaGen)
-      .attr("fill",color).attr("opacity",isSelected?0.08:0.03);
- 
-    g.append("path").datum(ndvi).attr("d",lineGen)
-      .attr("fill","none").attr("stroke",color)
-      .attr("stroke-width",isSelected?2.5:1.2)
-      .attr("opacity",isSelected?1:0.4);
- 
-    // Dots at each observation
-    ndvi.forEach((v,i)=>{
-      const isCurrentObs=isSelected&&i===selectedDateIndex;
-      g.append("circle")
-        .attr("cx",xScale(dates[i])).attr("cy",yScale(v))
-        .attr("r",isCurrentObs?6:isSelected?3.5:2)
-        .attr("fill",isCurrentObs?"#f5a623":color)
-        .attr("stroke",isCurrentObs?"#f5a623":"none")
-        .attr("stroke-width",isCurrentObs?2:0)
-        .attr("opacity",isSelected?1:0.4)
-        .attr("pointer-events","all")
-        .style("cursor","crosshair")
-        .on("mouseover",function(event){
-          d3.select(this).attr("r",isCurrentObs?8:5).attr("opacity",1);
-          document.getElementById("tt-title").textContent=fire.name;
-          document.getElementById("tt-r1").innerHTML=`Date: <span>${fire.dates[i]}</span>`;
-          document.getElementById("tt-r2").innerHTML=`NDVI: <span>${v.toFixed(3)}</span>`;
-          document.getElementById("tt-r3").innerHTML=`Status: <span>${ndviLabel(v)}</span>`;
-          document.getElementById("tt-ndvi-fill").style.width=(v*100)+"%";
-          document.getElementById("tt-ndvi-lbl").textContent="Vegetation health index";
-          tooltip.style.opacity="1";moveTooltip(event);
-        })
-        .on("mousemove",e=>moveTooltip(e))
-        .on("mouseout",function(){
-          d3.select(this).attr("r",isCurrentObs?6:isSelected?3.5:2).attr("opacity",isSelected?1:0.4);
-          hideTooltip();
-        });
-    });
- 
-    // Fire name label at end of line
-    const lastX=xScale(dates[dates.length-1]);
-    const lastY=yScale(ndvi[ndvi.length-1]);
-    g.append("text").attr("x",lastX+6).attr("y",lastY+4)
-      .attr("fill",color).attr("font-family","'DM Mono',monospace")
-      .attr("font-size","9px").attr("letter-spacing","0.5px")
-      .attr("opacity",isSelected?1:0.5)
-      .text(fire.name.split(" ")[0].toUpperCase());
-  });
- 
-  // Current date vertical line
-  if(selectedFire){
-    const curX=xScale(new Date(getSelectedDate()));
-    g.append("line").attr("x1",curX).attr("x2",curX).attr("y1",0).attr("y2",h)
-      .attr("stroke","#f5a623").attr("stroke-width",1.5).attr("opacity",0.8);
-    g.append("rect").attr("x",curX-1).attr("y",-10).attr("width",2).attr("height",8)
-      .attr("fill","#f5a623");
-  }
- 
-  // X axis
-  const xAxis=d3.axisBottom(xScale).ticks(6).tickFormat(d3.timeFormat("%b %Y"));
-  const xAxisG=g.append("g").attr("transform",`translate(0,${h})`).call(xAxis);
-  xAxisG.selectAll("text").attr("fill","#3e3d38").attr("font-family","'DM Mono',monospace")
-    .attr("font-size","9px").attr("transform","rotate(-30)").attr("text-anchor","end");
-  xAxisG.selectAll("line,path").attr("stroke","#2c2a26");
- 
-  // Axis labels
-  chorSvg.append("text").attr("x",m.left+w/2).attr("y",H-8)
-    .attr("text-anchor","middle").attr("fill","#3e3d38")
-    .attr("font-family","'DM Mono',monospace").attr("font-size","10px").attr("letter-spacing","1px")
-    .text("OBSERVATION DATE");
- 
-  chorSvg.append("text")
-    .attr("transform",`translate(16,${m.top+h/2}) rotate(-90)`)
-    .attr("text-anchor","middle").attr("fill","#3e3d38")
-    .attr("font-family","'DM Mono',monospace").attr("font-size","10px").attr("letter-spacing","1px")
-    .text("NDVI — VEGETATION HEALTH");
- 
-  // Title
-  chorSvg.append("text").attr("x",m.left+w/2).attr("y",30)
-    .attr("text-anchor","middle").attr("fill","#ede9df")
-    .attr("font-family","'Bebas Neue',sans-serif").attr("font-size","20px").attr("letter-spacing","3px")
-    .text("VEGETATION RECOVERY — ALL FIRES");
- 
-  chorSvg.append("text").attr("x",m.left+w/2).attr("y",46)
-    .attr("text-anchor","middle").attr("fill","#7c7a72")
-    .attr("font-family","'DM Mono',monospace").attr("font-size","9px").attr("letter-spacing","1px")
-    .text("SELECTED FIRE HIGHLIGHTED · HOVER DOTS FOR DETAILS · SLIDER MOVES CURRENT DATE MARKER");
-}
- 
- 
+
+
 function showLoading(){clearTimeout(loadingTimer);document.getElementById("loading").classList.remove("hidden");loadingTimer=setTimeout(hideLoading,7000);}
 function hideLoading(){clearTimeout(loadingTimer);document.getElementById("loading").classList.add("hidden");}
- 
+
 function updateSVGOverlay(){
   if(!selectedFire)return;
   const W=container.clientWidth,H=container.clientHeight;
@@ -514,7 +357,7 @@ function updateSVGOverlay(){
       .attr("stroke",color).attr("stroke-width",.8).attr("opacity",.4);
   }
 }
- 
+
 function showTooltip(event,fire){
   const ndvi=getCurrentNDVI();
   document.getElementById("tt-title").textContent=fire.name;
@@ -532,7 +375,7 @@ function moveTooltip(event){
   tooltip.style.left=tx+"px";tooltip.style.top=ty+"px";
 }
 function hideTooltip(){tooltip.style.opacity="0";}
- 
+
 function renderNDVIChart(fire){
   const el=document.getElementById("ndvi-chart");
   el.innerHTML="";
@@ -575,7 +418,7 @@ function renderNDVIChart(fire){
   });
   svg2.append("text").attr("x",m.left).attr("y",10).attr("fill","#3e3d38").attr("font-family","'DM Mono',monospace").attr("font-size","7px").attr("letter-spacing","1.5px").text("NDVI — VEGETATION HEALTH INDEX");
 }
- 
+
 function renderSliderTrack(fire){
   const svg2=d3.select("#tl-track-bg");
   svg2.selectAll("*").remove();
@@ -597,7 +440,7 @@ function renderSliderTrack(fire){
     svg2.append("polygon").attr("points",`${ix},0 ${ix-4},4 ${ix+4},4`).attr("fill","#e8541e").attr("opacity",.9);
   }
 }
- 
+
 // updateAll is defined below with minimap + split support
 function ndviLabel(v){
   if(v>=.6)return"Dense vegetation";
@@ -616,7 +459,7 @@ function updateInfoPanel(fire){
   const days=Math.round((new Date(fire.contained)-new Date(fire.ignition))/(1000*60*60*24));
   rowsEl.innerHTML=[["County",fire.county],["Cause",fire.cause],["Duration",`${days} days`]].map(([k,v])=>`<div class="info-row"><span class="ir-key">${k}</span><span class="ir-val">${v}</span></div>`).join("");
 }
- 
+
 function selectFire(fire){
   selectedFire=fire;selectedDateIndex=0;
   mapCenter={lng:fire.center[0],lat:fire.center[1]};mapZoom=fire.zoom;
@@ -651,7 +494,7 @@ function buildFireList(data){
     list.appendChild(btn);
   });
 }
- 
+
 document.getElementById("timeline-slider").addEventListener("input",function(){selectDateIndex(parseInt(this.value));});
 document.querySelectorAll(".layer-btn").forEach(btn=>{
   btn.addEventListener("click",function(){
@@ -696,11 +539,11 @@ container.addEventListener("wheel",e=>{
   mapZoom=Math.max(4,Math.min(12,mapZoom+(e.deltaY>0?-1:1)));renderTiles();
 },{passive:false});
 window.addEventListener("resize",()=>{if(selectedFire){renderTiles();renderSliderTrack(selectedFire);}});
- 
+
 let playInterval=null;
 const playBtn=document.getElementById("play-btn");
 const playStatus=document.getElementById("play-status");
- 
+
 function startPlay(){
   if(!selectedFire)return;
   playBtn.textContent="⏸";playBtn.classList.add("playing");
@@ -724,13 +567,13 @@ playBtn.addEventListener("click",()=>{
 });
 // Stop play when user manually drags slider
 document.getElementById("timeline-slider").addEventListener("mousedown",()=>stopPlay());
- 
+
 let splitActive=false;
 let splitX=null;
 const splitBtn=document.getElementById("split-btn");
 const splitDivider=document.getElementById("split-divider");
 const tilesBefore=document.getElementById("map-tiles-before");
- 
+
 function renderBeforeTiles(){
   if(!selectedFire)return;
   const preDate=selectedFire.dates[0]; // always pre-fire date
@@ -755,7 +598,7 @@ function renderBeforeTiles(){
     }
   }
 }
- 
+
 function setSplitPos(x){
   splitX=x;
   splitDivider.style.left=x+"px";
@@ -777,7 +620,7 @@ function setSplitPos(x){
   container.appendChild(lbl1);
   container.appendChild(lbl2);
 }
- 
+
 splitBtn.addEventListener("click",()=>{
   splitActive=!splitActive;
   if(splitActive){
@@ -795,7 +638,7 @@ splitBtn.addEventListener("click",()=>{
     document.querySelectorAll(".split-label").forEach(l=>l.remove());
   }
 });
- 
+
 // Drag the split divider
 let draggingSplit=false;
 splitDivider.addEventListener("mousedown",e=>{draggingSplit=true;e.stopPropagation();e.preventDefault();});
@@ -806,13 +649,13 @@ document.addEventListener("mousemove",e=>{
   setSplitPos(x);
 });
 document.addEventListener("mouseup",()=>{draggingSplit=false;});
- 
+
 const CA_OUTLINE=[
   [-124.4,42.0],[-120.0,42.0],[-120.0,39.0],[-114.6,35.1],[-114.6,34.9],
   [-117.1,32.5],[-117.5,32.5],[-118.5,34.0],[-120.5,34.5],[-122.4,37.8],
   [-123.0,38.0],[-124.2,40.5],[-124.4,42.0]
 ];
- 
+
 function renderMinimap(){
   const svg=d3.select("#ca-minimap");
   svg.selectAll("*").remove();
@@ -840,14 +683,14 @@ function renderMinimap(){
       .text(selectedFire.name.split(" ")[0].toUpperCase());
   }
 }
- 
+
 // Store cell data for transitions
 let prevCellData=[];
- 
+
 function renderChoroplethWithTransition(){
   renderChoropleth();
 }
- 
+
 const _origSelectFire=selectFire;
 // We'll call renderMinimap after selectFire already runs via patching updateAll
 const _origUpdateAll=updateAll;
@@ -875,7 +718,7 @@ function updateAll(){
     if(splitX)setSplitPos(splitX);
   }
 }
- 
+
 const FIRE_STORIES={
   dixie:{
     ignition:"July 13, 2021 — PG&E transmission lines near Cresta Dam during Red Flag conditions",
@@ -910,7 +753,7 @@ const FIRE_STORIES={
     ecology:"Chaparral and coastal scrub are naturally fire-adapted. Strong vegetation recovery visible by year 3-4."
   }
 };
- 
+
 function showFirePopup(fire){
   const story=FIRE_STORIES[fire.id];
   if(!story)return;
@@ -928,11 +771,11 @@ function showFirePopup(fire){
   ).join("");
   document.getElementById("fire-popup").style.display="block";
 }
- 
+
 document.getElementById("popup-close").addEventListener("click",()=>{
   document.getElementById("fire-popup").style.display="none";
 });
- 
+
 d3.json("fires.json").then(data=>{
   fires=data;buildFireList(fires);selectFire(fires[0]);
 }).catch(err=>{
