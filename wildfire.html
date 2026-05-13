@@ -476,6 +476,7 @@ function selectFire(fire){
     document.querySelectorAll(".split-label").forEach(l=>l.remove());
   }
   stopPlay();
+  document.getElementById("fire-popup").style.display="none";
   renderSliderTrack(fire);updateAll();updateInfoPanel(fire);renderNDVIChart(fire);renderTiles();
 }
 function selectDateIndex(idx){
