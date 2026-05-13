@@ -596,6 +596,16 @@ function selectFire(fire){
   document.querySelectorAll(".fire-btn").forEach(b=>b.classList.toggle("active",b.dataset.id===fire.id));
   const slider=document.getElementById("timeline-slider");
   slider.max=fire.dates.length-1;slider.value=0;
+  // Reset before/after split when switching fires
+  if(splitActive){
+    splitActive=false;
+    splitBtn.style.borderColor="";splitBtn.style.color="";
+    document.getElementById("split-divider").style.display="none";
+    document.getElementById("map-tiles-before").style.display="none";
+    document.getElementById("map-tiles").style.clipPath="none";
+    document.querySelectorAll(".split-label").forEach(l=>l.remove());
+  }
+  stopPlay();
   renderSliderTrack(fire);updateAll();updateInfoPanel(fire);renderNDVIChart(fire);renderTiles();
 }
 function selectDateIndex(idx){
